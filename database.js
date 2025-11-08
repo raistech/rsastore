@@ -104,6 +104,7 @@ function initDatabase() {
             file_path TEXT,
             download_link TEXT,
             image_url TEXT,
+            features TEXT,
             is_active BOOLEAN DEFAULT 1,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
