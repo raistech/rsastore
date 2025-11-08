@@ -501,7 +501,30 @@ async function initializeWhatsApp() {
         });
         
         // Message event
-        client.on('message', handleMessage);
+        client.on('message', async (msg) => {
+            console.log('[WhatsApp Bot] Message received:', msg.from, '->', msg.body);
+            logger.info('WhatsApp message received (raw)', { 
+                from: msg.from, 
+                body: msg.body,
+                isGroupMsg: msg.from.includes('@g.us'),
+                type: msg.type
+            });
+            
+            // Ignore group messages
+            if (msg.from.includes('@g.us')) {
+                console.log('[WhatsApp Bot] Ignoring group message');
+                return;
+            }
+            
+            // Ignore broadcast messages
+            if (msg.from === 'status@broadcast') {
+                console.log('[WhatsApp Bot] Ignoring status broadcast');
+                return;
+            }
+            
+            // Handle the message
+            await handleMessage(msg);
+        });
         
         // Initialize
         await client.initialize();
@@ -582,14 +605,22 @@ async function sendPaymentNotification(order, downloadLink) {
         
         const chatId = phoneNumber + '@c.us';
         
-        // Check if number is registered on WhatsApp
-        const isRegistered = await whatsappClient.isRegisteredUser(chatId);
-        if (!isRegistered) {
-            logger.warn('WhatsApp number not registered', { 
-                phone: order.customer_whatsapp,
-                invoice: order.invoice_number 
+        // Try to check if number is registered (but don't block if check fails)
+        try {
+            const isRegistered = await whatsappClient.isRegisteredUser(chatId);
+            if (!isRegistered) {
+                logger.warn('WhatsApp number may not be registered, but will attempt to send', { 
+                    phone: order.customer_whatsapp,
+                    invoice: order.invoice_number 
+                });
+                // Don't return false, still try to send
+            }
+        } catch (checkError) {
+            logger.warn('Could not verify WhatsApp registration, will attempt to send anyway', { 
+                error: checkError.message,
+                phone: order.customer_whatsapp 
             });
-            return false;
+            // Continue anyway
         }
         
         // Format message
