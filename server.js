@@ -521,6 +521,23 @@ app.post('/checkout/:productId', checkoutLimiter, skipCsrf, async (req, res) => 
     }
 });
 
+// API: Get Bot Info (for checkout page)
+app.get('/api/bot-info', (req, res) => {
+    const db = getDB();
+    
+    db.get('SELECT whatsapp_phone_number FROM bot_settings WHERE id = 1', [], (err, row) => {
+        db.close();
+        
+        if (err) {
+            return res.json({ whatsapp_phone_number: null });
+        }
+        
+        res.json({ 
+            whatsapp_phone_number: row && row.whatsapp_phone_number ? row.whatsapp_phone_number : null 
+        });
+    });
+});
+
 // Check Order Status (API)
 app.get('/api/order-status/:invoiceNumber', (req, res) => {
     const invoiceNumber = req.params.invoiceNumber;
